@@ -4,6 +4,8 @@ const COLUNAS = 8;
 const VAZIO = 0;
 const PRETA = 1;
 const BRANCA = 2;
+const PRETA_DAMA = 3;
+const BRANCA_DAMA = 4;
 
 let tabuleiro = [];
 
@@ -14,6 +16,18 @@ let movimentosPossiveis = [];
 let turnoAtual = BRANCA; // branca começa jogando
 
 const tabuleiroElemento = document.getElementById("tabuleiro");
+
+function ehPreta(valor) {
+    return valor === PRETA || valor === PRETA_DAMA;
+}
+
+function ehBranca(valor) {
+    return valor === BRANCA || valor === BRANCA_DAMA;
+}
+
+function ehDama(valor) {
+    return valor === PRETA_DAMA || valor === BRANCA_DAMA;
+}
 
 function criarEstadoInicial() {
     const novoTabuleiro = [];
@@ -38,19 +52,21 @@ function calcularMovimentosSimples(linha, coluna) {
     const valor = tabuleiro[linha][coluna];
     const movimentos = [];
 
-    // Peças pretas andam para baixo (+1), brancas andam para cima (-1)
-    const direcao = valor === PRETA ? 1 : -1;
+    // Peças normais só andam numa direção; damas andam nas duas
+    const direcoes = ehDama(valor) ? [1, -1] : [valor === PRETA ? 1 : -1];
 
-    const novasColunas = [coluna - 1, coluna + 1];
+    for (const direcao of direcoes) {
+        const novasColunas = [coluna - 1, coluna + 1];
 
-    for (const novaColuna of novasColunas) {
-        const novaLinha = linha + direcao;
+        for (const novaColuna of novasColunas) {
+            const novaLinha = linha + direcao;
 
-        const dentroDoTabuleiro =
-            novaLinha >= 0 && novaLinha < LINHAS && novaColuna >= 0 && novaColuna < COLUNAS;
+            const dentroDoTabuleiro =
+                novaLinha >= 0 && novaLinha < LINHAS && novaColuna >= 0 && novaColuna < COLUNAS;
 
-        if (dentroDoTabuleiro && tabuleiro[novaLinha][novaColuna] === VAZIO) {
-            movimentos.push({ linha: novaLinha, coluna: novaColuna });
+            if (dentroDoTabuleiro && tabuleiro[novaLinha][novaColuna] === VAZIO) {
+                movimentos.push({ linha: novaLinha, coluna: novaColuna });
+            }
         }
     }
 
@@ -61,38 +77,44 @@ function calcularMovimentosCaptura(linha, coluna) {
     const valor = tabuleiro[linha][coluna];
     const capturas = [];
 
-    const direcao = valor === PRETA ? 1 : -1;
-    const corAdversaria = valor === PRETA ? BRANCA : PRETA;
+    const direcoes = ehDama(valor) ? [1, -1] : [valor === PRETA ? 1 : -1];
+    const corAdversariaEhPreta = ehBranca(valor);
 
-    const novasColunas = [coluna - 1, coluna + 1];
+    for (const direcao of direcoes) {
+        const novasColunas = [coluna - 1, coluna + 1];
 
-    for (const colunaAdjacente of novasColunas) {
-        const linhaAdjacente = linha + direcao;
+        for (const colunaAdjacente of novasColunas) {
+            const linhaAdjacente = linha + direcao;
 
-        const linhaSalto = linha + direcao * 2;
-        const colunaSalto = colunaAdjacente + (colunaAdjacente - coluna);
+            const linhaSalto = linha + direcao * 2;
+            const colunaSalto = colunaAdjacente + (colunaAdjacente - coluna);
 
-        const adjacenteDentroDoTabuleiro =
-            linhaAdjacente >= 0 && linhaAdjacente < LINHAS &&
-            colunaAdjacente >= 0 && colunaAdjacente < COLUNAS;
+            const adjacenteDentroDoTabuleiro =
+                linhaAdjacente >= 0 && linhaAdjacente < LINHAS &&
+                colunaAdjacente >= 0 && colunaAdjacente < COLUNAS;
 
-        const saltoDentroDoTabuleiro =
-            linhaSalto >= 0 && linhaSalto < LINHAS &&
-            colunaSalto >= 0 && colunaSalto < COLUNAS;
+            const saltoDentroDoTabuleiro =
+                linhaSalto >= 0 && linhaSalto < LINHAS &&
+                colunaSalto >= 0 && colunaSalto < COLUNAS;
 
-        if (!adjacenteDentroDoTabuleiro || !saltoDentroDoTabuleiro) {
-            continue;
-        }
+            if (!adjacenteDentroDoTabuleiro || !saltoDentroDoTabuleiro) {
+                continue;
+            }
 
-        const temAdversariaNoMeio = tabuleiro[linhaAdjacente][colunaAdjacente] === corAdversaria;
-        const destinoVazio = tabuleiro[linhaSalto][colunaSalto] === VAZIO;
+            const valorAdjacente = tabuleiro[linhaAdjacente][colunaAdjacente];
+            const temAdversariaNoMeio = corAdversariaEhPreta
+                ? ehPreta(valorAdjacente)
+                : ehBranca(valorAdjacente);
 
-        if (temAdversariaNoMeio && destinoVazio) {
-            capturas.push({
-                linha: linhaSalto,
-                coluna: colunaSalto,
-                capturada: { linha: linhaAdjacente, coluna: colunaAdjacente },
-            });
+            const destinoVazio = tabuleiro[linhaSalto][colunaSalto] === VAZIO;
+
+            if (temAdversariaNoMeio && destinoVazio) {
+                capturas.push({
+                    linha: linhaSalto,
+                    coluna: colunaSalto,
+                    capturada: { linha: linhaAdjacente, coluna: colunaAdjacente },
+                });
+            }
         }
     }
 
@@ -115,28 +137,33 @@ function desenharTabuleiro() {
 
             casa.dataset.linha = linha;
             casa.dataset.coluna = coluna;
+
             casa.addEventListener("click", () => aoClicarNaCasa(linha, coluna));
 
             const valor = tabuleiro[linha][coluna];
-            if (valor === PRETA || valor === BRANCA) {
+            if (valor !== VAZIO) {
                 const peca = document.createElement("div");
                 peca.classList.add("peca");
-                peca.classList.add(valor === PRETA ? "peca-preta" : "peca-branca");
+                peca.classList.add(ehPreta(valor) ? "peca-preta" : "peca-branca");
+                if (ehDama(valor)) {
+                    peca.classList.add("peca-dama");
+                }
                 casa.appendChild(peca);
             }
+
             const estaSelecionada = pecaSelecionada && pecaSelecionada.linha === linha && pecaSelecionada.coluna === coluna;
             if (estaSelecionada) {
-                 casa.classList.add("casa-selecionada");
-                 
+                casa.classList.add("casa-selecionada");
+            }
+
             const ehMovimentoPossivel = movimentosPossiveis.some(
-            (m) => m.linha === linha && m.coluna === coluna
+                (m) => m.linha === linha && m.coluna === coluna
             );
             if (ehMovimentoPossivel) {
                 const marcador = document.createElement("div");
                 marcador.classList.add("marcador-movimento");
                 casa.appendChild(marcador);
-}
-}
+            }
 
             tabuleiroElemento.appendChild(casa);
         }
@@ -177,7 +204,6 @@ function moverPeca(origem, destino) {
     tabuleiro[origem.linha][origem.coluna] = VAZIO;
     tabuleiro[destino.linha][destino.coluna] = valor;
 
-    // Se o destino veio de uma captura, ele terá a propriedade "capturada"
     const movimentoEscolhido = movimentosPossiveis.find(
         (m) => m.linha === destino.linha && m.coluna === destino.coluna
     );
@@ -185,6 +211,13 @@ function moverPeca(origem, destino) {
     if (movimentoEscolhido && movimentoEscolhido.capturada) {
         const { linha, coluna } = movimentoEscolhido.capturada;
         tabuleiro[linha][coluna] = VAZIO;
+    }
+
+    // Promoção: peça preta chegando na última linha (7), branca chegando na primeira (0)
+    if (valor === PRETA && destino.linha === LINHAS - 1) {
+        tabuleiro[destino.linha][destino.coluna] = PRETA_DAMA;
+    } else if (valor === BRANCA && destino.linha === 0) {
+        tabuleiro[destino.linha][destino.coluna] = BRANCA_DAMA;
     }
 
     turnoAtual = turnoAtual === BRANCA ? PRETA : BRANCA;
