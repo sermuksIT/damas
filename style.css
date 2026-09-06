@@ -47,3 +47,12 @@ body {
     outline: 4px solid limegreen;
     outline-offset: -4px;
 }
+
+.marcador-movimento {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: limegreen;
+    opacity: 0.6;
+}
+

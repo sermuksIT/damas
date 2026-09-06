@@ -9,6 +9,8 @@ let tabuleiro = [];
 
 let pecaSelecionada = null; // vai guardar {linha, coluna} da peça clicada
 
+let movimentosPossiveis = [];
+
 let turnoAtual = BRANCA; // branca começa jogando
 
 const tabuleiroElemento = document.getElementById("tabuleiro");
@@ -31,6 +33,32 @@ function criarEstadoInicial() {
     }
     return novoTabuleiro;
 }
+
+function calcularMovimentosSimples(linha, coluna) {
+    const valor = tabuleiro[linha][coluna];
+    const movimentos = [];
+
+    // Peças pretas andam para baixo (+1), brancas andam para cima (-1)
+    const direcao = valor === PRETA ? 1 : -1;
+
+    const novasColunas = [coluna - 1, coluna + 1];
+
+    for (const novaColuna of novasColunas) {
+        const novaLinha = linha + direcao;
+
+        const dentroDoTabuleiro =
+            novaLinha >= 0 && novaLinha < LINHAS && novaColuna >= 0 && novaColuna < COLUNAS;
+
+        if (dentroDoTabuleiro && tabuleiro[novaLinha][novaColuna] === VAZIO) {
+            movimentos.push({ linha: novaLinha, coluna: novaColuna });
+        }
+    }
+
+    return movimentos;
+}
+
+
+
 
 function desenharTabuleiro() {
     tabuleiroElemento.innerHTML = "";
@@ -57,6 +85,15 @@ function desenharTabuleiro() {
             const estaSelecionada = pecaSelecionada && pecaSelecionada.linha === linha && pecaSelecionada.coluna === coluna;
             if (estaSelecionada) {
                  casa.classList.add("casa-selecionada");
+                 
+            const ehMovimentoPossivel = movimentosPossiveis.some(
+            (m) => m.linha === linha && m.coluna === coluna
+            );
+            if (ehMovimentoPossivel) {
+                const marcador = document.createElement("div");
+                marcador.classList.add("marcador-movimento");
+                casa.appendChild(marcador);
+}
 }
 
             tabuleiroElemento.appendChild(casa);
@@ -67,11 +104,40 @@ function desenharTabuleiro() {
 function aoClicarNaCasa(linha, coluna) {
     const valor = tabuleiro[linha][coluna];
 
+    // Caso 1: clicou numa peça do jogador da vez -> seleciona ela
     if (valor === turnoAtual) {
         pecaSelecionada = { linha, coluna };
-    } else {
-        pecaSelecionada = null;
+        movimentosPossiveis = calcularMovimentosSimples(linha, coluna);
+        desenharTabuleiro();
+        return;
     }
+
+    // Caso 2: já tem uma peça selecionada e clicou num destino válido -> move
+    const destinoValido = movimentosPossiveis.some(
+        (m) => m.linha === linha && m.coluna === coluna
+    );
+
+    if (pecaSelecionada && destinoValido) {
+        moverPeca(pecaSelecionada, { linha, coluna });
+    }
+
+    // Caso 3: clicou em qualquer outro lugar -> limpa seleção
+    pecaSelecionada = null;
+    movimentosPossiveis = [];
+    desenharTabuleiro();
+}
+
+
+function moverPeca(origem, destino) {
+    const valor = tabuleiro[origem.linha][origem.coluna];
+
+    tabuleiro[origem.linha][origem.coluna] = VAZIO;
+    tabuleiro[destino.linha][destino.coluna] = valor;
+
+    turnoAtual = turnoAtual === BRANCA ? PRETA : BRANCA;
+
+    pecaSelecionada = null;
+    movimentosPossiveis = [];
 
     desenharTabuleiro();
 }
