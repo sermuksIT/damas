@@ -42,3 +42,8 @@ body {
     background-color: #e8e8e8;
     border: 2px solid #ccc;
 }
+
+.casa-selecionada {
+    outline: 4px solid limegreen;
+    outline-offset: -4px;
+}
