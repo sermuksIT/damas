@@ -57,6 +57,48 @@ function calcularMovimentosSimples(linha, coluna) {
     return movimentos;
 }
 
+function calcularMovimentosCaptura(linha, coluna) {
+    const valor = tabuleiro[linha][coluna];
+    const capturas = [];
+
+    const direcao = valor === PRETA ? 1 : -1;
+    const corAdversaria = valor === PRETA ? BRANCA : PRETA;
+
+    const novasColunas = [coluna - 1, coluna + 1];
+
+    for (const colunaAdjacente of novasColunas) {
+        const linhaAdjacente = linha + direcao;
+
+        const linhaSalto = linha + direcao * 2;
+        const colunaSalto = colunaAdjacente + (colunaAdjacente - coluna);
+
+        const adjacenteDentroDoTabuleiro =
+            linhaAdjacente >= 0 && linhaAdjacente < LINHAS &&
+            colunaAdjacente >= 0 && colunaAdjacente < COLUNAS;
+
+        const saltoDentroDoTabuleiro =
+            linhaSalto >= 0 && linhaSalto < LINHAS &&
+            colunaSalto >= 0 && colunaSalto < COLUNAS;
+
+        if (!adjacenteDentroDoTabuleiro || !saltoDentroDoTabuleiro) {
+            continue;
+        }
+
+        const temAdversariaNoMeio = tabuleiro[linhaAdjacente][colunaAdjacente] === corAdversaria;
+        const destinoVazio = tabuleiro[linhaSalto][colunaSalto] === VAZIO;
+
+        if (temAdversariaNoMeio && destinoVazio) {
+            capturas.push({
+                linha: linhaSalto,
+                coluna: colunaSalto,
+                capturada: { linha: linhaAdjacente, coluna: colunaAdjacente },
+            });
+        }
+    }
+
+    return capturas;
+}
+
 
 
 
@@ -107,7 +149,8 @@ function aoClicarNaCasa(linha, coluna) {
     // Caso 1: clicou numa peça do jogador da vez -> seleciona ela
     if (valor === turnoAtual) {
         pecaSelecionada = { linha, coluna };
-        movimentosPossiveis = calcularMovimentosSimples(linha, coluna);
+        const capturas = calcularMovimentosCaptura(linha, coluna);
+movimentosPossiveis = capturas.length > 0 ? capturas : calcularMovimentosSimples(linha, coluna);
         desenharTabuleiro();
         return;
     }
@@ -133,6 +176,16 @@ function moverPeca(origem, destino) {
 
     tabuleiro[origem.linha][origem.coluna] = VAZIO;
     tabuleiro[destino.linha][destino.coluna] = valor;
+
+    // Se o destino veio de uma captura, ele terá a propriedade "capturada"
+    const movimentoEscolhido = movimentosPossiveis.find(
+        (m) => m.linha === destino.linha && m.coluna === destino.coluna
+    );
+
+    if (movimentoEscolhido && movimentoEscolhido.capturada) {
+        const { linha, coluna } = movimentoEscolhido.capturada;
+        tabuleiro[linha][coluna] = VAZIO;
+    }
 
     turnoAtual = turnoAtual === BRANCA ? PRETA : BRANCA;
 
