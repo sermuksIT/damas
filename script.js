@@ -16,6 +16,7 @@ let movimentosPossiveis = [];
 let turnoAtual = BRANCA; // branca começa jogando
 
 const tabuleiroElemento = document.getElementById("tabuleiro");
+const mensagemTurnoElemento = document.getElementById("mensagem-turno");
 
 function ehPreta(valor) {
     return valor === PRETA || valor === PRETA_DAMA;
@@ -170,6 +171,11 @@ function desenharTabuleiro() {
     }
 }
 
+function atualizarMensagemTurno() {
+    const nomeJogador = turnoAtual === BRANCA ? "Brancas" : "Pretas";
+    mensagemTurnoElemento.textContent = `Vez das: ${nomeJogador}`;
+}
+
 function aoClicarNaCasa(linha, coluna) {
     const valor = tabuleiro[linha][coluna];
 
@@ -226,7 +232,9 @@ function moverPeca(origem, destino) {
     movimentosPossiveis = [];
 
     desenharTabuleiro();
+    atualizarMensagemTurno();
 }
 
 tabuleiro = criarEstadoInicial();
 desenharTabuleiro();
+atualizarMensagemTurno();
