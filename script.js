@@ -8,15 +8,13 @@ const PRETA_DAMA = 3;
 const BRANCA_DAMA = 4;
 
 let tabuleiro = [];
-
 let pecaSelecionada = null; // vai guardar {linha, coluna} da peça clicada
-
 let movimentosPossiveis = [];
-
 let turnoAtual = BRANCA; // branca começa jogando
 
 const tabuleiroElemento = document.getElementById("tabuleiro");
 const mensagemTurnoElemento = document.getElementById("mensagem-turno");
+const botaoReiniciarElemento = document.getElementById("botao-reiniciar");
 
 function ehPreta(valor) {
     return valor === PRETA || valor === PRETA_DAMA;
@@ -53,7 +51,6 @@ function calcularMovimentosSimples(linha, coluna) {
     const valor = tabuleiro[linha][coluna];
     const movimentos = [];
 
-    // Peças normais só andam numa direção; damas andam nas duas
     const direcoes = ehDama(valor) ? [1, -1] : [valor === PRETA ? 1 : -1];
 
     for (const direcao of direcoes) {
@@ -122,8 +119,26 @@ function calcularMovimentosCaptura(linha, coluna) {
     return capturas;
 }
 
+function jogadorTemMovimentos(cor) {
+    for (let linha = 0; linha < LINHAS; linha++) {
+        for (let coluna = 0; coluna < COLUNAS; coluna++) {
+            const valor = tabuleiro[linha][coluna];
 
+            const ehDaCor = cor === BRANCA ? ehBranca(valor) : ehPreta(valor);
+            if (!ehDaCor) {
+                continue;
+            }
 
+            const temCaptura = calcularMovimentosCaptura(linha, coluna).length > 0;
+            const temMovimentoSimples = calcularMovimentosSimples(linha, coluna).length > 0;
+
+            if (temCaptura || temMovimentoSimples) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
 
 function desenharTabuleiro() {
     tabuleiroElemento.innerHTML = "";
@@ -179,16 +194,14 @@ function atualizarMensagemTurno() {
 function aoClicarNaCasa(linha, coluna) {
     const valor = tabuleiro[linha][coluna];
 
-    // Caso 1: clicou numa peça do jogador da vez -> seleciona ela
     if (valor === turnoAtual) {
         pecaSelecionada = { linha, coluna };
         const capturas = calcularMovimentosCaptura(linha, coluna);
-movimentosPossiveis = capturas.length > 0 ? capturas : calcularMovimentosSimples(linha, coluna);
+        movimentosPossiveis = capturas.length > 0 ? capturas : calcularMovimentosSimples(linha, coluna);
         desenharTabuleiro();
         return;
     }
 
-    // Caso 2: já tem uma peça selecionada e clicou num destino válido -> move
     const destinoValido = movimentosPossiveis.some(
         (m) => m.linha === linha && m.coluna === coluna
     );
@@ -197,12 +210,10 @@ movimentosPossiveis = capturas.length > 0 ? capturas : calcularMovimentosSimples
         moverPeca(pecaSelecionada, { linha, coluna });
     }
 
-    // Caso 3: clicou em qualquer outro lugar -> limpa seleção
     pecaSelecionada = null;
     movimentosPossiveis = [];
     desenharTabuleiro();
 }
-
 
 function moverPeca(origem, destino) {
     const valor = tabuleiro[origem.linha][origem.coluna];
@@ -219,7 +230,6 @@ function moverPeca(origem, destino) {
         tabuleiro[linha][coluna] = VAZIO;
     }
 
-    // Promoção: peça preta chegando na última linha (7), branca chegando na primeira (0)
     if (valor === PRETA && destino.linha === LINHAS - 1) {
         tabuleiro[destino.linha][destino.coluna] = PRETA_DAMA;
     } else if (valor === BRANCA && destino.linha === 0) {
@@ -232,9 +242,28 @@ function moverPeca(origem, destino) {
     movimentosPossiveis = [];
 
     desenharTabuleiro();
+
+    if (!jogadorTemMovimentos(turnoAtual)) {
+        const vencedor = turnoAtual === BRANCA ? "Pretas" : "Brancas";
+        mensagemTurnoElemento.textContent = `Fim de jogo! Vencedor: ${vencedor}`;
+    } else {
+        atualizarMensagemTurno();
+    }
+}
+
+function reiniciarJogo() {
+    tabuleiro = criarEstadoInicial();
+    turnoAtual = BRANCA;
+    pecaSelecionada = null;
+    movimentosPossiveis = [];
+
+    desenharTabuleiro();
     atualizarMensagemTurno();
 }
 
 tabuleiro = criarEstadoInicial();
 desenharTabuleiro();
 atualizarMensagemTurno();
+botaoReiniciarElemento.addEventListener("click", reiniciarJogo);
+
+
